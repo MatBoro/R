@@ -1,0 +1,89 @@
+#loading the csv file to the environment
+
+mydata <- read.csv("house.csv", header = TRUE, sep = ",", stringsAsFactors = FALSE)
+
+#looking for a mean value for yr_renovated, since most of the values in this column equals 0
+
+#probably I won't use this column in the future, since it can create errors in calculations
+
+mean1 <- mean(mydata$yr_renovated)
+
+#changing the 0 for mean value, but it's still to small (84) to consider it as a year
+
+mydata$yr_renovated <- as.integer(ifelse(mydata$yr_renovated == 0, mean1, mydata$yr_renovated))
+
+#waterfront, view, condition and grade are categorical variables, so I'm changing them to factors, since I don't want to have indirect values
+
+mydata$waterfront <- factor(mydata$waterfront)
+mydata$view <- factor(mydata$view)
+mydata$condition <- factor(mydata$condition)
+mydata$grade <- factor(mydata$grade)
+
+#how to show numbers instead of scientific notation
+
+options(scipen=7)
+
+#stripping date to only YEAR-MONTH-DAY and changing it to date format using package
+
+lubridate
+mydata$date <- strtrim(mydata$date, 8)
+library(lubridate)
+mydata$date <- ymd(mydata$date)
+
+#changing to numeric, according to the instructions
+
+mydata$sqft_living <- as.numeric(mydata$sqft_living)
+mydata$floors <- as.numeric(mydata$floors)
+mydata$price <- as.numeric(mydata$price)
+mydata$bedrooms <- as.numeric(mydata$bedrooms)
+
+#plotting to check what can be relevant in the model (based on the charts)
+
+plot(mydata$date, mydata$price) #seems to be irrelevant
+plot(mydata$bedrooms, mydata$price) #can have some influence
+plot(mydata$bathrooms, mydata$price) #can have some influence
+plot(mydata$sqft_lot, mydata$price) #can have some influence
+plot(mydata$floors, mydata$price) #can have some influence
+plot(mydata$waterfront, mydata$price) #for sure have some influence
+plot(mydata$view, mydata$price) #for sure have some influence
+plot(mydata$condition, mydata$price) #for sure have some influence
+plot(mydata$grade, mydata$price) #for sure have some influence
+plot(mydata$sqft_above, mydata$price) #have some influence
+plot(mydata$sqft_basement, mydata$price) #have some influence
+plot(mydata$yr_built, mydata$price) #can have some influence
+plot(mydata$yr_renovated, mydata$price) #seems to be irrelevant
+plot(mydata$zipcode, mydata$price) #can have some influence
+plot(mydata$lat, mydata$price) #have some influence
+plot(mydata$long, mydata$price) #have some influence
+plot(mydata$id, mydata$price) #in my opinion ID doesn't affect the price anyhow
+
+#I'm skipping sqft_living15 and sqft_lot15 cince they can interupt modelling with normal sqft_living and sqft_lot
+#I'm also skipping ID, and yr_renovated, becauce only a few houses were renovated and it doesn't look that it has any big influence on price
+#creating test data to validate model and train data to work on
+
+library(caret)
+
+i <- createDataPartition(mydata$id, p=2/3, list = FALSE)
+train_DF <- mydata[i,]
+test_DF <- mydata[-i,]
+
+#creating test_counts to check the quality of predicition - column with prices from
+
+test_DF
+test_counts <- test_DF$price
+#creating the predicition
+library(rpart)
+model <- rpart(price ~ bedrooms + bathrooms + sqft_living + sqft_lot + floors + waterfront + view + condition + grade + sqft_above + sqft_basement + yr_built + zipcode,train_DF)
+
+pp <- predict(model, test_DF)
+
+plot(pp - test_counts, type="p", xlab = "Actual Value", ylab = "Predicted Value")
+
+#predicting
+
+prediction_1 <- predict(model, data.frame(bedrooms = 3, bathrooms = 2, sqft_living = as.integer(1500), sqft_lot = as.integer(5500), floors = as.integer(2), waterfron
+t = factor(1), view = factor(4), condition = factor(4), grade = factor(9), sqft_above = 660, sqft_basement = 300, yr_built = 1969, zipcode = as.integer(98053)))
+
+#price of predicted house
+
+prediction_1 #1164812
