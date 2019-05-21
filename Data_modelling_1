@@ -1,0 +1,249 @@
+library(dplyr)
+library(stringr)
+
+#library(purrr)
+#wczytanie danych i przefiltrowanie na "Some_text_value" w kolumnie Some_Column i dodanie kolumny na nowegą wartość i kolumny na nową datę
+dataset <- filter(read.csv(file.path("C:\\Users\\Public\\folder\\file_20170110111111.csv"), header = TRUE, sep = "|", stringsAsFactors = FALSE), Some_column == "Some_text_value")
+dataset$date <- str_extract("C:\\Users\\Public\\folder\\file_20170410111111.csv", "\\d{8}")
+#dataset$NewText <- " "
+#dataset$NewDate <- " " 
+
+dataset2<- filter(read.csv(file.path("file:///C:/Users/Public/folder/file_20170111222222.csv"), header = TRUE, sep ="|", stringsAsFactors = FALSE), Some_column == "Some_text_value")
+dataset2$date <- str_extract("file:///C:/Users/Public/folder/rating_20170211222222.csv", "\\d{8}")
+#dataset2$NewText <- " "
+#dataset2$NewDate <- " "
+c <- data.frame(Column1 = "D", Country = "PL", Column2 = "Value_1", Column_ID = "123456789", Column_Code = 15, Text = "Chad", Sequence = 1, date = "20170211")
+dataset2 <- rbind(c, dataset2)
+
+dataset3<-filter(read.csv(file.path("file:///C:/Users/Public/folder/file_20170412777777.csv"), header = TRUE, sep ="|", stringsAsFactors = FALSE), Some_column == "Some_text_value")
+dataset3$date <- "20180715"
+  #str_extract("file:///C:/Users/Public/folder/file_20170412987354.csv", "\\d{8}")
+#dataset3$NewText <- " " 
+#dataset3$NewDate <- " "
+
+#dodawanie do datasetu3 wierszy i zmiana kolumny "Text" aby sprawdzić czy działa 
+dataset3 <- rbind(dataset3, dataset[dataset$Column_ID == "ABC123456789", ])
+dataset3 <- rbind(dataset3, dataset[dataset$Column_ID == "DCF758931455", ])
+dataset3 <- rbind(dataset3, dataset[dataset$Column_ID == "QWE777774125", ])
+dataset3 <- rbind(dataset3, dataset[dataset$Column_ID == "MMM123874951", ])
+
+dataset3 <- rbind(dataset3, dataset[dataset$Column_ID == "POI546546654", ])
+dataset3 <- rbind(dataset3, dataset[dataset$Column_ID == "GUJ412391947", ])
+dataset3 <- rbind(dataset3, dataset[dataset$Column_ID == "WWWPRO8L3M00", ])
+
+
+dataset3[dataset3$Column_ID == "ABC123456789", ]$Text <- "Grandpa"
+dataset3[dataset3$Column_ID == "DCF758931455", ]$Text <- "Catalina"
+dataset3[dataset3$Column_ID == "QWE777774125", ]$Text <- "Pontiac"
+dataset3[dataset3$Column_ID == "MMM123874951", ]$Text <- "Chicago"
+
+dataset3[dataset3$Column_ID == "POI546546654", ]$Text <- "Foxtrot"
+dataset3[dataset3$Column_ID == "GUJ412391947", ]$Text <- "Tango"
+dataset3[dataset3$Column_ID == "WWWPRO8L3M00", ]$Text <- "Hollywood"
+dataset3[dataset3$Column_ID == "HACK3DBGH0$T", ]$Text <- "Zulu"
+
+#Tworzenie kopii datasetów
+datasetCopy <- dataset
+dataset3Copy <- dataset3
+
+#datasetCOPY$Text <- ifelse ((datasetCOPY$Column_ID %in% dataset3$Column_ID), dataset3$Text, dataset$Text)
+
+#sprawdzenie data frame
+library(compare)
+comparision <- compare(dataset3Copy[dataset3Copy$Column_ID %in% datasetCopy$Column_ID, ], datasetCopy[datasetCopy$Column_ID %in% dataset3Copy$Column_ID, ], ignoreNames = TRUE, dropLevels = TRUE)
+
+
+#lista plików do sprawdzenia
+dataFiles <- Sys.glob("C:\\Users\\Public\\folder\\folder\\file_*.csv")
+
+#funkcja wczytająca pliki i dodająca kolumnę
+read_csv_filename <- function(pathfile) {
+  data <- filter(read.csv(file.path(pathfile), header = TRUE, sep = "|", stringsAsFactors = FALSE), Some_column == "Some_text_value")
+  data$dates <- str_extract(pathfile, "\\d{8}")
+  data
+}
+
+#funkcja tylko wczytająca pliki bez dodawania kolumny, potrzebna bo kilka plików jest zupełnie pustych bez żadnych danych 
+only_read_csv <- function(paths){
+  only_data <- filter(read.csv(file.path(paths), header = TRUE, sep = "|", stringsAsFactors = FALSE), Some_column == "Some_text_value")
+  only_data
+}
+
+ 
+  
+
+
+#tworzenie przeciwnej funkcji do %in%
+'%nin%' <- Negate('%in%')
+
+
+#pętla wczytująca pliki do srodowiska i bazy danych 
+ for (n in 1:length(dataFiles)){
+   assign(paste0("dataset", n), filter(read.csv(file.path(dataFiles[n]), header = TRUE, sep = "|", stringsAsFactors = FALSE), Some_column == "Some_text_value"))
+   #dataset[n] <- filter(read.csv(file.path(dataFiles[n]), header = TRUE, sep = "|", stringsAsFactors = FALSE), Some_column == "Some_text_value")
+ }
+
+#pętla wczytująca pliki do srodowiska i bazy danych
+for (n in 1:length(dataFiles)){
+  if (nrow(only_read_csv(dataFiles[n])) == 0){
+    assign(paste0("dataset", n), filter(read.csv(file.path(dataFiles[n]), header = TRUE, sep = "|", stringsAsFactors = FALSE), Some_column == "Some_text_value"))
+  } else {
+  assign(paste0("dataset", n), read_csv_filename(dataFiles[n]))
+  }
+}
+  #assign(paste0("dataset", n), filter(read.csv(file.path(dataFiles[n]), header = TRUE, sep = "|", stringsAsFactors = FALSE), Some_column == "Some_text_value"))
+  #dataset[n] <- filter(read.csv(file.path(dataFiles[n]), header = TRUE, sep = "|", stringsAsFactors = FALSE), Some_column == "Some_text_value")
+
+#tworzenie kopii dataset matki 
+
+dataset1 <- dataset
+
+
+ (eval(as.name(paste0("dataset", b)))) # paste0 łączy nazwę dataset ze zmienna b, as.name tworzy z tego name, czyli coś z czego można odnosić się do obiektów, eval wykonuje i odnosi się do obiektu
+
+ for (m in 2:355){  
+   for (i in 1:length(dataset1$Column_ID)){
+     for (j in 1:length((eval(as.name(paste0("dataset", m))))$Column_ID)){
+       if (nrow(eval(as.name(paste0("dataset", m)))) == 0){
+         1+1
+       } else {
+         if(dataset1$Column_ID[i] == (eval(as.name(paste0("dataset", m))))$Column_ID[j] && dataset1$Text[i] != (eval(as.name(paste0("dataset", m))))$Text[j]){
+            change <- data.frame(Column_ID= dataset1$Column_ID[i], OldVal = dataset1$Text[i], NewVal = (eval(as.name(paste0("dataset", m))))$Text[j], OldDate = dataset1$date[i], NewDate = (eval(as.name(paste0("dataset", m))))$date[j])
+            MotherSet <- rbind(change, MotherSet)
+           }
+         else if (dataset1$Column_ID[i] != (eval(as.name(paste0("dataset", m))))$Column_ID[j] && (eval(as.name(paste0("dataset", m))))$Column_ID[j] %in% dataset1$Column_ID){
+           1+1
+         }
+         else if (dataset1$Column_ID[i] != (eval(as.name(paste0("dataset", m))))$Column_ID[j] && (eval(as.name(paste0("dataset", m))))$Column_ID[j] %nin% dataset1$Column_ID) {
+           dataset1[nrow(dataset1)+1, ] <- rbind(eval(as.name(paste0("dataset", m)))[j, ], dataset1)
+         } else {dataset1 <- dataset1}
+       }
+     }
+   }
+ }
+
+#pętla łącząca wszystkie datasety w jeden duży dataframe
+FullDataSet <- dataset1 %>% select(Country, Column_Name, Column_ID, Text, dates)
+for (m in 2:355){
+  if (nrow(eval(as.name(paste0("dataset", m)))) != 0){
+      FullDataSet <- rbind(((eval(as.name(paste0("dataset", m)))) %>% select(Country, Column_Name, Column_ID, Text, dates)), FullDataSet)
+  } else { 
+    1+1 
+    }
+}
+
+FullDataSet1 <- FullDataSet 
+
+#tworzenie MotherSetu z changelogami
+MotherSet <- data.frame(matrix(ncol = 7, nrow = 0))
+names <- c("Country", "Column_ID", "Column_Name" ,"OldVal", "NewVal", "OldDate", "NewDate")
+colnames(MotherSet) <- names
+
+pb <- txtProgressBar(min = 0, max = nrow(FullDataSet), style = 3)
+
+for (i in 1:nrow(FullDataSet)){
+  for (j in 1:nrow(FullDataSet1)){
+    if (FullDataSet$Column_ID[i] == FullDataSet1$Column_ID[j]
+        && FullDataSet$Country[i] == FullDataSet1$Country[j]
+        && FullDataSet$Text[i] != FullDataSet1$Text[j]
+        && FullDataSet$date[i] <= FullDataSet1$date[j]){
+        change <- data.frame(Country = FullDataSet$Country[i], Column_ID = FullDataSet$Column_ID[i], Column_Name = FullDataSet$Column_Name[i], OldVal = FullDataSet$Text[i], OldDate = FullDataSet$date[i], NewVal = FullDataSet1$Text[j],  NewDate = FullDataSet1$date[j])
+        MotherSet <- rbind(change, MotherSet)
+  } else {
+    1+1
+    }
+  }
+  setTxtProgressBar(pb, i)
+}
+
+
+
+
+dataset1 <-dataset
+
+
+
+#is.na(eval(as.name(paste0("dataset", m))))#omija ostatni wiersz bo robi Rbinda. sprawdź na którym poziomie i omijany jest wiersz i dlaczego jest 40 a nie 41L
+
+
+#m <- 10
+#for (x in 1:length((eval(as.name(paste0("dataset", m))))$Column_ID)){
+  
+#  print (x)
+#}
+
+#dataset$date <- str_extract(dataFiles[1], "\\d{8}") 
+
+#dataset1 <- rbind(c(dataset1[i,1:8],eval(as.name(paste0("dataset", 3)))$Text[j], eval(as.name(paste0("dataset", 3)))[j,10:10]), dataset1) 
+
+
+#eval(as.name(paste0("dataset", 3)))$NewText[j], eval(as.name(paste0("dataset", m)))$NewDate[j]), dataset1)
+#rbind(c(dataset1[i,1:8],eval(as.name(paste0("dataset", m)))[j, 9:10]), dataset1))
+
+#tworzenie nowego DataFrame do zapisywania tylko zmian
+MotherSet <- data.frame(matrix(ncol = 5, nrow = 0))
+names <- c("Column_ID", "OldCal", "NewVal", "OldDate", "NewDate")
+colnames(MotherSet) <- names
+
+#schemat do zapisywania zmian
+#c <- data.frame(Column_IDomerID = dataset1$Column_ID[i], OldRep = dataset1$Text[i], NewRep = (eval(as.name(paste0("dataset", m))))$Text[j], OldDate = dataset1$date[i], NewDate = (eval(as.name(paste0("dataset", m))))$date[j])
+#MotherSet <- rbind(c, MotherSet)
+
+
+write.csv(MotherSet, file ="C:\\Users\\Public\\ratings\\MotherSet.csv", row.names = FALSE)
+
+MotherSetCopy <- MotherSet
+MotherSetNew <- MotherSet %>% filter(NewDate == 0)
+MotherCopy <- MotherSet
+
+library(lubridate)
+
+MotherSet$Country <- as.character(MotherSet$Country)
+MotherSet$Column_IDomerID <- as.character(MotherSet$Column_ID)
+MotherSet$Column_Name <- as.character(MotherSet$Column_Name)
+MotherSet$OldRep <- as.character(MotherSet$OldVal)
+MotherSet$OldDate <- as.character(MotherSet$OldDate)
+MotherSet$NewRep <- as.character(MotherSet$NewVal)
+MotherSet$NewDate <- as.character(MotherSet$NewDate)
+
+
+for (p in 1:nrow(MotherSet)){
+   for (q in 1:nrow(MotherCopy)){
+     if ((MotherSet$Column_ID[p] == MotherCopy$Column_ID[q]
+         && MotherSet$NewVal[p] == MotherCopy$OldVal[q]
+         && MotherSet$NewDate[p] == MotherCopy$OldDate[q]
+         && MotherSet$OldDate[p] != MotherCopy$OldDate[q]))
+       {
+       record <- data.frame(MotherSet[p,])
+       MotherSetNew <- rbind(record, MotherSetNew)
+     }
+   }
+  setTxtProgressBar(pb, p)
+  print(p)
+}
+
+#|| (MotherSet$Column_ID[p] %in% MotherSet$Column_ID
+#&& MotherSet$OldDate[p] > MotherSet$OldDate
+#&& MotherSet$NewDate[p] > MotherSet$NewDate)
+
+
+MotherSetCopy <- MotherSet %>% select(Country, Column_ID, Column_Name, OldVal, OldDate, NewDate)
+
+MotherSetCopy <- MotherSetCopy[!duplicated(MotherSetCopy[c(2,3,4,5)]),]
+
+
+MotherSetFinal <- MotherSet
+MotherSetFinal <- MotherSetFinal[order(MotherSetFinal$Column_ID, MotherSetFinal$OldDate, MotherSetFinal$OldRep), ]
+MotherSetFinal <- MotherSetFinal[!duplicated(MotherSetFinal[c(2,4,5)]), ] 
+
+MotherSetFinal <- MotherSetFinal[order(MotherSetFinal$Column_ID, MotherSetFinal$OldDate, MotherSetFinal$NewDate), ]
+
+MotherSetFinal <- MotherSetFinal[!duplicated(MotherSetFinal[c(2,4,7)]), ] 
+
+write.csv(MotherSetNew, file ="C:\\Users\\Public\\folder\\MotherSetNew.csv", row.names = FALSE)
+
+write.csv(MotherSetFinal, file="C:\\Users\\Public\\folder\\MotherSetFinal.csv", row.names = FALSE)
+
+write.csv(FullDataSet, file ="C:\\Users\\Public\\folder\\FinalFiles\\FullDataSet.csv", row.names=FALSE)
+
+
