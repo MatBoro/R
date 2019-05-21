@@ -1,0 +1,63 @@
+#### THIS CODE WAS COPIED INTO DATAIKU PROCESS (INSTALLED ON AZURE) AND MODELLED DATABASE SO REGRESSION COULD OCCUR ######
+
+#1. read the data
+dataset <- read.csv("file:///C:/Users/public/folder/Desktop/Dataiku/Data/Data_2017_2018_final.csv", nrows = 1000, stringsAsFactors = FALSE, header = TRUE, encoding = "UTF-8")
+library(lubridate)
+dataset$Date <- substr(dataset$Date, 1, 10)
+dataset$Date <- ymd(dataset$Date)
+
+#2. finding the max date and min date and create date vector 
+max <- max(dataset$Date)
+min <- min(dataset$Date)
+
+#min <- ymd('2017-01-01')
+#max <- ymd('2017-02-01')
+
+dates <- seq.Date(as.Date(min), as.Date(max), by="days")
+
+
+#3. unique values
+dataset <- unique(dataset)
+dates <- unique(dates)
+
+#4. take the earliest date for product and pharmacy 
+
+library(dplyr)
+FirstDateProduct <- dataset %>% group_by(Pharmacy_OKID, Bloz) %>% arrange(Date) %>% slice(1L)
+
+#4.5 Change FristDateProduct data table to three columns. Bloz and OKID to ma'tch, and date to add to RES table
+
+FirstDateProduct <- subset(FirstDateProduct, select = c("Date", "ID", "Column_Name"))
+
+#4. converting data frame to data table - easier to work on with functions
+
+library(data.table)
+dataset <- as.data.table(dataset)
+dates <- as.data.table(dates)
+FirstDateProduct <- as.data.table(FirstDateProduct)
+
+#5.kartesian product with basic dataset with dates 
+
+res <- setkey(dataset[,c(k=1, .SD)],k)[dates[,c(k=1,.SD)], allow.cartesian = TRUE][,k:= NULL]
+
+#6. checking different way instead of a loop which is quite slow in R
+# quantity is 0 based if BASE DATE is different than dates from katesian product
+
+
+library(plyr)
+
+res$Quantity[which(res$Date != res$dates)] <- 0
+
+
+#drop column named Date, we need only dates
+res <- subset(res, select = -c(Date))
+
+
+#inner join with the first date of occurence of Product in specific Pharmacy
+res_isolated<- inner_join(res, FirstDateProduct, by=c("ID", "Column_Name"))
+
+res_isolated_NEW <- subset(res_isolated, !(dates < Date))
+
+res_isolated_NEW <- subset(res_isolated_NEW, select = -c(Date))
+
+
