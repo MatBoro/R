@@ -1,0 +1,176 @@
+#installing packages
+
+install.packages("jsonlite")
+install.packages("dplyr")
+install.packages("listviewer")
+install.packages("reshape2")
+install.packages("xlsx")
+install.packages("translateR")
+library (listviewer)
+library (jsonlite)
+library (dplyr)
+library (reshape2)
+library (xlsx)
+library (translateR)
+
+# 1. Step - PRE-PROCESSING
+
+#reading target data to compare
+
+target_df <- xlsx::read.xlsx2("Target Data.xlsx",1)
+
+for (col in colnames(target_df)){
+  Encoding(target_df[[col]]) <- "UTF-8"
+}
+
+column_list <- list(colnames(target_df))
+
+#creating dataframe from json file
+#file - creates a connection
+#stream_in - line by line processing of JSON data over connection 
+
+supplier_df <- stream_in(file("supplier_car.json"))
+supplier_df$entity_id <- NULL
+
+for (col_1 in colnames(supplier_df)){
+  Encoding(supplier_df[[col_1]]) <- "UTF-8"
+}
+
+#changing column names to remove whitespace
+
+colnames(supplier_df) <- gsub(x = colnames(supplier_df), pattern =" ", replacement ="_")
+
+#list distinct values from column attributes to compare with target_colnames
+
+attribute_list <- list(unique(supplier_df$`Attribute_Names`))
+
+#show values from Attribute List and Column Name List. Need it to identify which attributes do we need. 
+#jsonedit because it nicely show list of values 
+
+jsonedit(column_list)
+jsonedit(attribute_list)
+
+needed_columns <- c("BodyColorText", "ConsumptionTotalText" , "Km", "FirstRegYear", "ConditionTypeText", "FirstRegMonth", "City", "BodyTypeText")
+
+#casting supplier_data to the wide format with "Attribute_Names" as additional Columns, and "Attribute_Values" as values for them
+supplier_df_backup <- supplier_df
+length(unique(supplier_df$ID))
+
+supplier_df <- reshape2::dcast(supplier_df, ... ~ Attribute_Names, value.var = "Attribute_Values")
+supplier_df_preprocessed <- supplier_df
+
+# 2. Step NORMALISATION 
+
+#checking and normalizing of every column that should be integrated with target table
+#creating functions that replace whole value, text value and NA to "null" 
+value_swap <- function(column, from, to) {
+  supplier_df[[column]] <- if_else(supplier_df[[column]] == from, to, supplier_df[[column]])
+  return(supplier_df)
+}
+
+na_swap <- function(column) {
+  supplier_df[[column]] <- if_else(is.na(supplier_df[[column]]), "null", supplier_df[[column]])
+  return(supplier_df)
+}
+
+text_swap <- function(column, from, to) {
+  supplier_df[[column]] <- gsub(from, to, supplier_df[[column]])
+  return(supplier_df)
+}
+
+#examples
+#normalizing BodyTypeText Column 
+supplier_df <- value_swap("BodyTypeText", "Cabriolet", "Convertible / Roadster")
+supplier_df <- value_swap("BodyTypeText", "SUV / Geländewagen", "SUV")
+supplier_df <- value_swap("BodyTypeText", "Kombi", "Station Wagon" )
+supplier_df <- na_swap("BodyTypeText")
+
+#normalizing BodyColorText Column 
+supplier_df <- text_swap("BodyColorText", " mét.", "")
+
+#Good idea would be to translate german words to english ones. 
+#BodyColorText and ConditionTypeText need to be translated
+#We can use translateR package but google api key needs to be provided
+
+#my.api.key <- xxxxxxxxxxxxxx
+#translator <- function(column) {
+# supplier_df <- translate(dataset = supplier_df,
+#                          content.field = column,
+#                          google.api.key = my.api.key,
+#                          source.lang = "de",
+#                          target.lang = "en")
+# return(supplier_df)
+#}
+
+#supplier_df <- translator("BodyColorText")
+
+#creating function to show 'Titles' instead of 'ALL CAPS'
+
+go_title <- function(column){
+  supplier_df[[column]] <- tools::toTitleCase(tolower(supplier_df[[column]]))
+  return(supplier_df)
+}
+
+#Normalizing "MakeText", "TypeNameFull" and "ModelText"
+supplier_df <- go_title("MakeText")
+supplier_df <- go_title("TypeNameFull")
+supplier_df <- go_title("ModelText")
+
+#Normalizing "ConsumptionTotalText" column
+supplier_df <- text_swap("ConsumptionTotalText", "([0-9]+)\\.([0-9])\\s+l/100km", "l_km_consumption")
+
+#Normalizing "Km" column
+supplier_df$Km <- if_else(grepl(".", supplier_df$Km) == TRUE, supplier_df$Km, paste0(supplier_df$Km, ".0"))
+
+#Removing NA across all data_frame
+
+for (i in colnames(supplier_df)) {
+  supplier_df <- na_swap(i)
+}
+
+supplier_df_normalized <- supplier_df
+
+# 3.Step - INTEGRATION 
+
+#cleaning objects
+rm(attribute_list, col, col_1, column_list, go_title, i, na_swap, needed_columns, text_swap, value_swap)
+
+#adding missing columns
+supplier_df$currency <- "CHF" #supposedly but the data information is not sufficient
+supplier_df$drive <- "LHD" #supposedly but the data information is not sufficient
+supplier_df$country <- "CH"
+supplier_df$mileage_unit <- "kilometer"
+supplier_df$price_on_request <- "null" #aspect to consider
+supplier_df$type <- if_else(supplier_df$BodyTypeText == "Sattelschlepper", "truck", "car") #aspect to consider
+supplier_df$zip <- "null"
+
+#changing column names
+colnames(supplier_df)[colnames(supplier_df) == "BodyTypeText"] <- "carType"
+colnames(supplier_df)[colnames(supplier_df) == "BodyColorText"] <- "color"
+colnames(supplier_df)[colnames(supplier_df) == "ConditionTypeText"] <- "condition"
+colnames(supplier_df)[colnames(supplier_df) == "BodyColorText"] <- "color"
+colnames(supplier_df)[colnames(supplier_df) == "City"] <- "city"
+colnames(supplier_df)[colnames(supplier_df) == "MakeText"] <- "make"
+colnames(supplier_df)[colnames(supplier_df) == "FirstRegYear"] <- "manufacture_year" #to consider
+colnames(supplier_df)[colnames(supplier_df) == "Km"] <- "mileage"
+colnames(supplier_df)[colnames(supplier_df) == "TypeName"] <- "model"
+colnames(supplier_df)[colnames(supplier_df) == "ModelTypeText"] <- "model_variant"
+colnames(supplier_df)[colnames(supplier_df) == "FirstRegMonth"] <- "manufacture_month" #to consider
+colnames(supplier_df)[colnames(supplier_df) == "ConsumptionTotalText"] <- "fuel_consumption_unit" #to consider
+
+
+column_list <- colnames(target_df)
+supplier_list <- colnames(supplier_df)
+supplier_df <- supplier_df[, column_list]
+
+supplier_df_integrated <- supplier_df
+
+#checking column names
+
+names(target_df) %in% names(supplier_df_integrated)
+
+#Saving Excel File
+
+write.xlsx2(supplier_df_preprocessed, file="CompanyTask.xlsx", sheetName="1. Pre-Processed", col.names = TRUE, row.names=FALSE)
+write.xlsx2(supplier_df_normalized, file="CompanyTask.xlsx", sheetName="2. Normalized", append = TRUE, col.names = TRUE, row.names=FALSE)
+write.xlsx2(supplier_df_integrated, file="CompanyTask.xlsx", sheetName="3. Integrated", append = TRUE, col.names = TRUE, row.names=FALSE)
