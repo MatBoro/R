@@ -1,0 +1,64 @@
+# The following code to create a dataframe and remove duplicated rows is always executed and acts as a preamble for your script:
+
+# dataset <- data.frame(start, start Name, destination, destination Name, customer, factory, volume)
+# dataset <- unique(dataset)
+
+# Paste or type your script code here:
+
+library(DiagrammeR)
+library(stringr)
+options(scipen = 99)
+dataset$'start' <- str_trim(as.character(paste(dataset$'start', "\n", dataset$'start Name')))
+dataset$'destination' <- str_trim(as.character(paste(dataset$'destination', "\n", dataset$'destination Name')))
+uniquenodes <- unique(c(dataset$'start', dataset$'destination'))
+customer <- as.character(dataset$'customer')
+factory <- as.character(dataset$'factory')
+
+nodes <- create_node_df(
+  n = length(uniquenodes),
+  label = uniquenodes,
+  type = uniquenodes,
+  color = "DodgerBlue",
+  fillcolor = "GhostWhite",
+  shape = "rectangle",
+  fontcolor = "RoyalBlue4",
+  fixedsize = FALSE,
+  penwidth = 3,
+  fontsize = 20
+)
+nodes$shape[nodes$type == "factory"] <- "oval"
+nodes$fillcolor[nodes$type == "factory"] <- "Gold"
+nodes$shape[substr(nodes$type, start =1, stop = 4) %in% factory] <- "oval"
+nodes$shape[substr(nodes$type, start =1, stop = 4) %in% customer] <- "rectangle"
+nodes$fillcolor[substr(nodes$type, start =1, stop = 4) %in% c(customer,factory)] <- "Gold"
+
+#Different formatting for sprintf 
+#"%#.2f" - two decimal digits
+#"%0.2f%%" - percent
+edges <-
+  create_edge_df(
+    from = factor(dataset$'start', levels = uniquenodes),
+    to = factor(dataset$'destination', levels = uniquenodes),
+    rel = "leading_to",
+    label = sprintf("%#.1f", dataset$volume),
+    fontsize = 21,
+    color = hsv(0.9386, (dataset$volume - min(dataset$volume)) / (max(dataset$volume) - min(dataset$volume)) * (1 - 0.15) + 0.15, 0.8902),
+    penwidth = 4,
+    arrowsize = 2
+  )
+
+#normalization between 0.20 and 1 as the ends of the range
+#(dataset$volume - min(dataset$volume)) / (max(dataset$volume) - min(dataset$volume)) * (1 - 0.20) + 0.20
+
+g <- create_graph(nodes_df = nodes,
+                  edges_df = edges,
+                  directed = TRUE) %>% add_global_graph_attrs(
+                    attr = c("layout", "rankdir"),
+                    value = c("dot", "TB"),
+                    attr_type = c("graph", "graph")
+                  )
+
+#making the graph a little bit longer
+g <- DiagrammeR::add_global_graph_attrs(graph =g, attr ="ranksep", value =1.1, attr_type="graph" )
+
+tmp <- export_graph(g, file_name = "image.png", file_type = "png")
